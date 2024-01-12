@@ -3,32 +3,6 @@ import assert from 'assert';
 
 import neo4j from 'neo4j-driver';
 
-// let driver = neo4j.driver(
-//   'neo4j://localhost',
-//   neo4j.auth.basic('neo4j', 'password')
-// );
-
-// const serverInfo = await driver.getServerInfo();
-// console.log('Connection established');
-// console.log(serverInfo);
-let driver;
-(async () => {
-  const URI = 'neo4j+s://03d31fd4.databases.neo4j.io';
-  const USER = 'neo4j';
-  const PASSWORD = '4qCBNMw3fMXsslv6kO6z-j_sSqX-2ZwkIvjGVrM7urA';
-
-  try {
-    driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD));
-    const serverInfo = await driver.getServerInfo();
-    console.log('Connection established');
-    console.log(serverInfo);
-  } catch (err) {
-    console.log(`Connection error\n${err}\nCause: ${err.cause}`);
-  }
-})();
-
-let cypherQuerySession = driver;
-
 dotenv.config();
 
 const {
@@ -41,8 +15,28 @@ const {
   STORAGE_BUCKET,
   MESSAGING_SENDER_ID,
   APP_ID,
-  JWT_TOKEN_SECRET
+  JWT_TOKEN_SECRET,
+  NEO4J_URI,
+  NEO4J_USER,
+  NEO4J_PASSWORD
 } = process.env;
+
+let driver;
+(async () => {
+  try {
+    driver = neo4j.driver(
+      NEO4J_URI,
+      neo4j.auth.basic(NEO4J_USER, NEO4J_PASSWORD)
+    );
+    const serverInfo = await driver.getServerInfo();
+    console.log('Connection established');
+    console.log(serverInfo);
+  } catch (err) {
+    console.log(`Connection error\n${err}\nCause: ${err.cause}`);
+  }
+})();
+
+let cypherQuerySession = driver;
 
 assert(PORT, 'Port is required');
 assert(HOST, 'Host is required');
