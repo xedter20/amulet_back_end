@@ -8,7 +8,9 @@ import {
   isUserNameExist,
   getTreeStructure,
   createChildren,
-  getUserNodeWithChildren
+  getUserNodeWithChildren,
+  getNetworkNodeList,
+  createFloater
 } from '../controllers/userController.js';
 
 import { authenticateUserMiddleware } from '../middleware/authMiddleware.js';
@@ -30,4 +32,12 @@ router.post(
   authenticateUserMiddleware,
   getUserNodeWithChildren
 );
+router.post(
+  '/getNetworkNodeList',
+  authenticateUserMiddleware,
+  getNetworkNodeList
+);
+
+router.post('/createFloater', authenticateUserMiddleware, createFloater);
+
 export default router;

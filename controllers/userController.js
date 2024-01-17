@@ -34,10 +34,39 @@ import {
   checkIfPairExist
 } from '../cypher/transaction.js';
 
+import {
+  addNetworkNode,
+  getNetworkNode,
+  getNetworkNodeByID,
+  updateNetworkNodeByID
+} from '../cypher/networkReg.js';
+
+import { createFloaterNode } from '../cypher/floater.js';
+
 import config from '../config.js';
 
 const { cypherQuerySession } = config;
 
+const amuletPackage = [
+  { key: 'sgep_10', displayName: 'SGEP Package 1 (Php 10,000)', points: 1000 },
+  { key: 'sgep_50', displayName: 'SGEP Package 2 (Php 50,000)', points: 5000 },
+  { key: 'sgep_100', displayName: 'SGEP Package 3 (Php 50,000)', points: 10000 }
+];
+
+const countTotalChildrenNodes = depthLevel => {
+  return 1 * Math.pow(2, depthLevel);
+};
+const checkIfLeftOrRightOfParentNode = ({
+  childNodeID,
+  targetParentNodeID
+}) => {};
+
+checkIfLeftOrRightOfParentNode({
+  firstParentDepthLevel: 4,
+  targetParentDeptLevel: 3,
+  // targetParentNodePosition: 2,
+  currentNodeIndexPosition: 8
+});
 const getAllPossibleMatch = ({ depthLevel }) => {
   const countTotalChildrenNodes = depthLevel => {
     return 1 * Math.pow(2, depthLevel);
@@ -379,8 +408,6 @@ export const getTreeStructure = async (req, res, next) => {
     );
     let result = data.records[0]._fields;
 
-    console.log(result);
-
     let getAllMatchPairByIdQuery = await cypherQuerySession.executeQuery(
       getAllMatchPairById({ ID: false })
     );
@@ -391,6 +418,7 @@ export const getTreeStructure = async (req, res, next) => {
 
     res.json({ success: true, data: tree });
   } catch (error) {
+    console.log(error);
     res.status(400).send(error.message);
   }
 };
@@ -399,8 +427,7 @@ export const createChildren = async (req, res, next) => {
   try {
     const data = req.body;
 
-    const { firstName, lastName, email, position, parentNodeID, targetUserID } =
-      data;
+    const { position, parentNodeID, targetUserID } = data;
 
     let { records } = await cypherQuerySession.executeQuery(
       findUserByIdQuery(parentNodeID)
@@ -437,8 +464,64 @@ export const createChildren = async (req, res, next) => {
     );
 
     if (position && parentNodeID && targetUserID) {
-      const result = createdUser.records[0]._fields[0];
+      let { amulet_package, ID, INDEX_PLACEMENT } = childUser;
 
+      let foundAmuletPackage = amuletPackage.find(aPackage => {
+        return aPackage.key === amulet_package;
+      });
+
+      if (foundAmuletPackage) {
+        // create relationship parent -> child
+        await cypherQuerySession.executeQuery(
+          createRelationShipQuery({
+            parentId: parentNodeID,
+            ID: targetUserID
+          })
+        );
+
+        let { points } = foundAmuletPackage;
+
+        const checkParentNodeIfPairExistQuery =
+          await cypherQuerySession.executeQuery(
+            getAllParentNodes({ ID: targetUserID })
+          );
+
+        const [child, parents] =
+          checkParentNodeIfPairExistQuery.records[0]._fields;
+
+        let list_ParentsOfParents = parents.map(current => {
+          return {
+            ...current,
+            DEPTH_LEVEL: current.DEPTH_LEVEL.low,
+            isViewed: false,
+            date_viewed: ''
+          };
+        });
+
+        let networkRegData = {
+          ID: uuidv4(),
+          parentID: parentNodeID,
+          childID: targetUserID,
+          points,
+          type: 'NEW',
+          position,
+          list_ParentsOfParents,
+          list_ParentsOfParentsIDs: list_ParentsOfParents.map(({ ID }) => ID),
+          date_created: Date.now()
+        };
+        // insertion
+
+        await cypherQuerySession.executeQuery(addNetworkNode(networkRegData));
+
+        console.log('inserted succesfully');
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'created_successfully'
+      });
+
+      return true;
       await cypherQuerySession.executeQuery(
         createRelationShipQuery({
           parentId: parentNodeID,
@@ -453,132 +536,6 @@ export const createChildren = async (req, res, next) => {
 
       const [child, parents] =
         checkParentNodeIfPairExistQuery.records[0]._fields;
-
-      // map all parents
-
-      let allPossibleCombination = getAllPossibleMatch({
-        depthLevel
-      });
-
-      console.log(result.ID_ALIAS);
-      allPossibleCombination = allPossibleCombination
-        .map(current => {
-          const exists = current.includes(result.ID_ALIAS);
-
-          if (exists && exists) {
-            return current;
-          } else {
-            return false;
-          }
-        })
-        .filter(u => u);
-
-      let resultPairs = await Promise.all(
-        parents.map(async ({ ID, DEPTH_LEVEL }) => {
-          // check if theres match
-
-          const pairing = await Promise.all(
-            allPossibleCombination.map(async aliasSet => {
-              const checkIfMatchExistQuery =
-                await cypherQuerySession.executeQuery(
-                  checkIfMatchExist({ ID, aliasSet })
-                );
-
-              let [{ low }] = checkIfMatchExistQuery.records[0]._fields;
-
-              let pairMatched = low === 2;
-
-              return {
-                parentDepthLevel: DEPTH_LEVEL.low,
-                currentDepthLevel: depthLevel,
-                parentId: ID,
-                aliasSet: aliasSet,
-                pairMatched: pairMatched
-              };
-            })
-          );
-
-          let result = await Promise.all(
-            pairing
-              .filter(({ pairMatched }) => !!pairMatched)
-              .map(async pairing => {
-                return pairing;
-              })
-          );
-
-          return {
-            ID,
-            DEPTH_LEVEL: DEPTH_LEVEL.low,
-            result
-          };
-        })
-      );
-
-      let allParentPairings = resultPairs
-        .filter(({ result }) => {
-          return result && result.length > 0;
-        })
-        .sort(function (a, b) {
-          let left = a.DEPTH_LEVEL;
-          let right = b.DEPTH_LEVEL;
-
-          if (left < right) {
-            return 1;
-          }
-          if (left > right) {
-            return -1;
-          }
-          return 0;
-        });
-
-      // let [chooseNearestParentThatHaveMatch] = allParentPairings;
-      let consumedAlias = [];
-
-      const allParentPairingsSimplified = allParentPairings
-        .filter(({ ID }) => ID)
-        .reduce((acc, current) => {
-          const updated = current.result.map(pairing => {
-            let currentAlias = pairing.aliasSet.join('=');
-
-            if (consumedAlias.includes(currentAlias)) {
-              return false;
-            } else {
-              consumedAlias.push(pairing.aliasSet.join('='));
-              return pairing;
-            }
-          });
-
-          current.result = updated.filter(u => u);
-
-          return [...acc, current];
-        }, []);
-
-      await Promise.all(
-        allParentPairingsSimplified.map((parent, index) => {
-          parent.result.map(async pairing => {
-            let currentAlias = pairing.aliasSet.join('=');
-
-            let isAliasExistOnDbQuery = await cypherQuerySession.executeQuery(
-              checkIfPairExist({
-                name: currentAlias
-              })
-            );
-            let [{ low }] = isAliasExistOnDbQuery.records[0]._fields;
-            let isAliasExistOnDb = low > 0;
-            console.log({ ID: parent.ID, currentAlias });
-
-            if (!isAliasExistOnDb) {
-              await cypherQuerySession.executeQuery(
-                addPairingNode({
-                  ID: uuidv4(),
-                  parentId: parent.ID,
-                  ...pairing
-                })
-              );
-            }
-          });
-        })
-      );
     }
 
     res.status(200).json({
@@ -587,6 +544,7 @@ export const createChildren = async (req, res, next) => {
     });
     return true;
   } catch (error) {
+    console.log(error);
     res.status(400).send(error.message);
   }
 };
@@ -624,6 +582,62 @@ export const getUserNodeWithChildren = async (req, res, next) => {
     }
 
     res.json({ success: true, data: availablePosition });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+};
+
+export const getNetworkNodeList = async (req, res, next) => {
+  try {
+    let loggedInUser = req.user;
+
+    let { records } = await cypherQuerySession.executeQuery(
+      getNetworkNode({
+        parentID: loggedInUser.ID
+      })
+    );
+    const list = records[0]._fields[0];
+
+    res.json({ success: true, data: list });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+};
+
+export const createFloater = async (req, res, next) => {
+  try {
+    let ID = req.body.ID;
+
+    await cypherQuerySession.executeQuery(
+      updateNetworkNodeByID({
+        ID,
+        data: {
+          type: 'OLD'
+        }
+      })
+    );
+
+    let { records } = await cypherQuerySession.executeQuery(
+      getNetworkNodeByID({
+        ID
+      })
+    );
+
+    const networkV = records[0]._fields[0];
+
+    let insertData = {
+      ID: uuidv4(),
+      floater_position: networkV.position,
+      points: networkV.points.low,
+      status: true,
+      action_type: 'INSERT',
+      date_created: Date.now(),
+      earnings_inserted: 0
+    };
+
+    console.log({ insertData });
+
+    res.json({ success: true });
   } catch (error) {
     res.status(400).send(error.message);
   }
