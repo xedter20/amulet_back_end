@@ -8,8 +8,7 @@ export const getAllParentNodes = ({ ID }) => {
     RETURN {email: a.email, ID: a.ID} as child, 
     collect({ 
      email: pg.email, 
-     ID: pg.ID, 
-     DEPTH_LEVEL: pg.DEPTH_LEVEL
+     ID: pg.ID
     }) as parents
 
   `;

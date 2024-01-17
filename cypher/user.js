@@ -1,5 +1,39 @@
 import util from 'util';
 
+export const detectPositionFromParent = ({
+  childNodeID,
+  targetParentID,
+  parentID
+}) => {
+  let queryText = ``;
+
+  if (parentID === targetParentID) {
+    queryText = `
+   MATCH (n:User { ID: '${childNodeID}' }) <-[:has_invite]- (target:User { ID : '${targetParentID}'})    
+
+
+    RETURN  { email: n.email, ID: n.ID, pos: n.INDEX_PLACEMENT } 
+
+ 
+
+  `;
+  } else {
+    queryText = `
+   MATCH (n:User { ID: '${childNodeID}' }) <-[:has_invite*]-
+
+   (target:User)<-[:has_invite*1]- (parent:User { ID : '${targetParentID}'})    
+
+
+    RETURN  { email: target.email, ID: target.ID, pos: target.INDEX_PLACEMENT } 
+
+ 
+
+  `;
+  }
+
+  return queryText;
+};
+
 export const addUserQuery = params => {
   let { ID, ...otherParams } = {
     ...params
@@ -27,9 +61,14 @@ export const createRelationShipQuery = ({ parentId, ID }) => {
      MATCH (parent:User { ID:  '${parentId}' }) 
      MATCH (child:User { ID:  '${ID}' } ) 
      MERGE(parent)-[e:has_invite]->(child) 
+     
+     ON CREATE SET 
+     e.date_created = ${Date.now()},
+     child.parentID = '${parentId}'
+     ON MATCH SET 
+     e.date_updated = ${Date.now()},
+     child.parentID = '${parentId}'
 
-     ON CREATE SET e.date_created = ${Date.now()}
-     ON MATCH SET e.date_updated = ${Date.now()}
 
     
 

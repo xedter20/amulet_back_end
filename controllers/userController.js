@@ -24,7 +24,8 @@ import {
   getChildren,
   findUserByEmailQuery,
   findUserByUserNameQuery,
-  findUserQuery
+  findUserQuery,
+  detectPositionFromParent
 } from '../cypher/user.js';
 import {
   getAllParentNodes,
@@ -442,6 +443,13 @@ export const createChildren = async (req, res, next) => {
       position: position
     });
 
+    await cypherQuerySession.executeQuery(
+      createRelationShipQuery({
+        parentId: parentNodeID,
+        ID: targetUserID
+      })
+    );
+
     let childUserInfo = await cypherQuerySession.executeQuery(
       findUserByIdQuery(targetUserID)
     );
@@ -464,7 +472,7 @@ export const createChildren = async (req, res, next) => {
     );
 
     if (position && parentNodeID && targetUserID) {
-      let { amulet_package, ID, INDEX_PLACEMENT } = childUser;
+      let { amulet_package, ID, INDEX_PLACEMENT, parentID } = childUser;
 
       let foundAmuletPackage = amuletPackage.find(aPackage => {
         return aPackage.key === amulet_package;
@@ -489,29 +497,56 @@ export const createChildren = async (req, res, next) => {
         const [child, parents] =
           checkParentNodeIfPairExistQuery.records[0]._fields;
 
-        let list_ParentsOfParents = parents.map(current => {
+        let list_ParentsOfParents = await Promise.all(
+          parents.map(async current => {
+            let childNodeID = ID;
+            let targetParentID = current.ID;
+
+            let positionFromParent = position;
+
+            let getPositionQuery = await cypherQuerySession.executeQuery(
+              detectPositionFromParent({
+                childNodeID,
+                targetParentID,
+                parentID: parentID
+              })
+            );
+            let [details] = getPositionQuery.records[0]._fields;
+
+            positionFromParent = details.pos.low === 1 ? 'LEFT' : 'RIGHT';
+
+            return {
+              ...current,
+
+              position: positionFromParent,
+              isViewed: false,
+              date_viewed: ''
+            };
+          })
+        );
+
+        // insertion
+
+        let data = list_ParentsOfParents.map(({ position, ...otherProps }) => {
           return {
-            ...current,
-            DEPTH_LEVEL: current.DEPTH_LEVEL.low,
-            isViewed: false,
-            date_viewed: ''
+            ID: uuidv4(),
+            parentID: otherProps.ID,
+            childID: targetUserID,
+            points,
+            position,
+            list_ParentsOfParents,
+            list_ParentsOfParentsIDs: list_ParentsOfParents.map(({ ID }) => ID),
+            date_created: Date.now()
           };
         });
 
-        let networkRegData = {
-          ID: uuidv4(),
-          parentID: parentNodeID,
-          childID: targetUserID,
-          points,
-          type: 'NEW',
-          position,
-          list_ParentsOfParents,
-          list_ParentsOfParentsIDs: list_ParentsOfParents.map(({ ID }) => ID),
-          date_created: Date.now()
-        };
-        // insertion
-
-        await cypherQuerySession.executeQuery(addNetworkNode(networkRegData));
+        await Promise.all(
+          data.map(async networkRegData => {
+            await cypherQuerySession.executeQuery(
+              addNetworkNode(networkRegData)
+            );
+          })
+        );
 
         console.log('inserted succesfully');
       }
@@ -604,18 +639,19 @@ export const getNetworkNodeList = async (req, res, next) => {
   }
 };
 
+const detectNodePositionToParent = () => {};
 export const createFloater = async (req, res, next) => {
   try {
     let ID = req.body.ID;
 
-    await cypherQuerySession.executeQuery(
-      updateNetworkNodeByID({
-        ID,
-        data: {
-          type: 'OLD'
-        }
-      })
-    );
+    // await cypherQuerySession.executeQuery(
+    //   updateNetworkNodeByID({
+    //     ID,
+    //     data: {
+    //       type: 'OLD'
+    //     }
+    //   })
+    // );
 
     let { records } = await cypherQuerySession.executeQuery(
       getNetworkNodeByID({
@@ -632,10 +668,13 @@ export const createFloater = async (req, res, next) => {
       status: true,
       action_type: 'INSERT',
       date_created: Date.now(),
-      earnings_inserted: 0
+      earnings_inserted: 0,
+      childID: networkV.childID
     };
 
-    console.log({ insertData });
+    await cypherQuerySession.executeQuery(
+      createFloaterNode(networkV.parentID, insertData)
+    );
 
     res.json({ success: true });
   } catch (error) {

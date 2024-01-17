@@ -28,13 +28,13 @@ export const addNetworkNode = data => {
 };
 
 export const getNetworkNode = ({ parentID }) => {
+  // ANY(item IN n.list_ParentsOfParentsIDs WHERE item =~ '${parentID}')
   const queryText = `
     
     MATCH (n:Network) WHERE
     
-    ANY(item IN n.list_ParentsOfParentsIDs WHERE item =~ '${parentID}') 
+    n.parentID = '${parentID}'
    
-
     with n
    
     MATCH (u: User) where u.ID = n.childID
