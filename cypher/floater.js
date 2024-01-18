@@ -1,6 +1,6 @@
 import util from 'util';
 export const createFloaterNode = (userId, data) => {
-  let { floater_position, childID } = data;
+  let { floater_position, childID, action_type } = data;
 
   const queryText = `
   
@@ -17,14 +17,18 @@ export const createFloaterNode = (userId, data) => {
 
   MERGE (floater)-[:has_history]-> (child_floater:ChildFloater
     {
-    childID: '${childID}'
+    childID: '${childID}',
+    action_type: '${action_type}'
+     
 
     }
     
     )
 
 
-  ON CREATE  SET child_floater += ${util.inspect(data)}
+  ON CREATE  
+  
+  SET child_floater += ${util.inspect(data)}
 
   return *
 
@@ -132,6 +136,8 @@ export const listFloaterData = ({ ID, floaterPosition }) => {
 
 
   `;
+
+  console.log(queryText);
 
   return queryText;
 };

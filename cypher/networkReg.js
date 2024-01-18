@@ -56,7 +56,9 @@ export const getNetworkNode = ({ parentID }) => {
      points: n.points,
      date_created: n.date_created,
      childDetails: childDetails,
-     list_ParentsOfParents: n.list_ParentsOfParents
+     list_ParentsOfParents: n.list_ParentsOfParents,
+     childID: n.childID,
+     parentID: n.parentID
 
     } )
     
