@@ -10,7 +10,8 @@ import {
   createChildren,
   getUserNodeWithChildren,
   getNetworkNodeList,
-  createFloater
+  createFloater,
+  fetchFloaterData
 } from '../controllers/userController.js';
 
 import { authenticateUserMiddleware } from '../middleware/authMiddleware.js';
@@ -39,5 +40,7 @@ router.post(
 );
 
 router.post('/createFloater', authenticateUserMiddleware, createFloater);
+
+router.post('/listFloaterData', authenticateUserMiddleware, fetchFloaterData);
 
 export default router;

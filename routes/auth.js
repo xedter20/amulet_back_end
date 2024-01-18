@@ -44,7 +44,7 @@ router.post('/login', async (req, res, next) => {
         token: token,
         data: {
           role: foundUser.role,
-          id: foundUser.id,
+          userId: foundUser.ID,
           email: foundUser.email
         }
       });
