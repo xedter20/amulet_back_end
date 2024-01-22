@@ -655,8 +655,6 @@ const fetchCurrentPoints = async (
   );
   oldFloaterDataArray = records[0]._fields[0];
 
-  console.log(oldFloaterDataArray);
-
   if (oldFloaterDataArray.length > 0) {
     currentData = oldFloaterDataArray[0].points.low;
   } else {
@@ -729,8 +727,8 @@ const updateNetworkParentsofParents = async ({ ID, userId }) => {
     };
   });
 
-  console.log(ID);
-  console.log(updatedData);
+  // console.log(ID);
+  // console.log(updatedData);
 
   await cypherQuerySession.executeQuery(
     updateNetworkNodeByID({
@@ -764,7 +762,8 @@ const floaterDataInsertion = async ({
     points: currentPoints,
     floater_position: floaterPosition,
     status: false,
-    action_type: actionType
+    action_type: actionType,
+    date_created: Date.now()
   };
   await cypherQuerySession.executeQuery(createFloaterNode(userID, insertData));
 };
@@ -795,7 +794,6 @@ export const createFloater = async (req, res, next) => {
       });
     }
 
-    console.log({ selectedNetWork });
     selectedNetWork = {
       ...selectedNetWork,
       points: networkV.points.low,
@@ -865,14 +863,16 @@ export const createFloater = async (req, res, next) => {
             floaterPosition: 'LEFT',
             userID: loggedInUser.ID,
             insertData,
-            currentPoints: 0
+            currentPoints: 0,
+            actionType: 'DIFFERENCE'
           });
           //End  Insert Data ==0 Left
           await floaterDataInsertion({
             floaterPosition: 'RIGHT',
             userID: loggedInUser.ID,
             insertData,
-            currentPoints
+            currentPoints,
+            actionType: 'DIFFERENCE'
           });
         } else {
           //Insert the current points left Floater
@@ -905,7 +905,15 @@ export const createFloater = async (req, res, next) => {
             floaterPosition: 'LEFT',
             userID: loggedInUser.ID,
             insertData,
-            currentPoints
+            currentPoints,
+            actionType: 'DIFFERENCE'
+          });
+          await floaterDataInsertion({
+            floaterPosition: 'RIGHT',
+            userID: loggedInUser.ID,
+            insertData,
+            currentPoints: 0,
+            actionType: 'DIFFERENCE'
           });
         }
       } else {
@@ -954,6 +962,8 @@ export const createFloater = async (req, res, next) => {
       let result = 0;
       if (currentLeftPoints > 0) {
         result = currentRightPoints - currentLeftPoints;
+
+        console.log({ result });
         if (result < 0) {
           let currentPoints = result * -1;
           // Insert Initial
@@ -1004,7 +1014,8 @@ export const createFloater = async (req, res, next) => {
             floaterPosition: 'RIGHT',
             userID: loggedInUser.ID,
             insertData,
-            currentPoints: currentRightPoints
+            currentPoints: currentRightPoints,
+            actionType: 'INSERT'
           });
 
           await cypherQuerySession.executeQuery(
@@ -1029,7 +1040,16 @@ export const createFloater = async (req, res, next) => {
             floaterPosition: 'RIGHT',
             userID: loggedInUser.ID,
             insertData,
-            currentPoints: currentPoints
+            currentPoints,
+            actionType: 'DIFFERENCE'
+          });
+          //Insert Difference == 0 left
+          await floaterDataInsertion({
+            floaterPosition: 'LEFT',
+            userID: loggedInUser.ID,
+            insertData,
+            currentPoints: 0,
+            actionType: 'DIFFERENCE'
           });
         }
       } else {

@@ -137,7 +137,5 @@ export const listFloaterData = ({ ID, floaterPosition }) => {
 
   `;
 
-  console.log(queryText);
-
   return queryText;
 };

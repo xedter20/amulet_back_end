@@ -31,6 +31,8 @@ export const detectPositionFromParent = ({
   `;
   }
 
+  console.log(queryText);
+
   return queryText;
 };
 
