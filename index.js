@@ -7,6 +7,9 @@ import userRoute from './routes/userRoute.js';
 import authRoute from './routes/auth.js';
 import transactionRoute from './routes/transactionRoute.js';
 import bodyParser from 'body-parser';
+import codeRoute from './routes/codeRoute.js';
+
+import * as initDBScripts from './scripts/initDB.js';
 
 const app = express();
 
@@ -31,6 +34,7 @@ app.use(express.json());
 app.use('/api/user', userRoute);
 app.use('/api/auth', authRoute);
 app.use('/api/transaction', transactionRoute);
+app.use('/api/code', codeRoute);
 
 app.use('/', async (req, res, next) => {
   res.json('Hello from server');
@@ -38,4 +42,5 @@ app.use('/', async (req, res, next) => {
 
 app.listen(config.port, async () => {
   console.log(`Server is live @ ${config.hostUrl}`);
+  await initDBScripts.initDB();
 });
