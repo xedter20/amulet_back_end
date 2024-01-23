@@ -1,6 +1,10 @@
 import util from 'util';
 
 export const createPackage = ({ name, data }) => {
+  let { ID, ...otherProps } = data;
+  let updateData = {
+    ...otherProps
+  };
   const queryText = `
   
  
@@ -8,7 +12,10 @@ export const createPackage = ({ name, data }) => {
    name: '${name}'
   })
   
+  
   on create  SET p += ${util.inspect(data)}
+
+  on match  SET p += ${util.inspect(updateData)}
 
 
 

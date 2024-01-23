@@ -1,6 +1,11 @@
 import util from 'util';
 
 export const createCodeType = ({ codeType, data }) => {
+  let { ID, ...otherProps } = data;
+  let updateData = {
+    ...otherProps
+  };
+
   const queryText = `
   
  
@@ -10,9 +15,22 @@ export const createCodeType = ({ codeType, data }) => {
   
   on create  SET ct += ${util.inspect(data)}
 
-
+  on match  SET ct += ${util.inspect(updateData)}
 
   return *
+
+  `;
+
+  return queryText;
+};
+
+export const listCodeType = () => {
+  const queryText = `
+  
+ 
+  MATCH (ct: CodeType )
+ 
+  return collect(properties(ct)) as data
 
   `;
 

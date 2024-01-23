@@ -12,12 +12,12 @@ import { v4 as uuidv4 } from 'uuid';
 const amuletPackage = [
   { name: 'package_10', displayName: 'Silver (Php 10,000)', points: 1000 },
   { name: 'package_50', displayName: 'Gold (Php 50,000)', points: 5000 },
-  { name: 'package_100', displayName: 'Diamond (Php 50,000)', points: 10000 }
+  { name: 'package_100', displayName: 'Diamond (Php 100,000)', points: 10000 }
 ];
 
 const codeType = [
-  { name: 'FREE_SLOT', displayName: 'FREE_SLOT', isActiveForDailyBonus: false },
-  { name: 'REGULAR', displayName: 'REGULAR', isActiveForDailyBonus: true }
+  { name: 'FREE_SLOT', displayName: 'Free Slot', isActiveForDailyBonus: false },
+  { name: 'REGULAR', displayName: 'Regular', isActiveForDailyBonus: true }
 ];
 
 export const initDB = async () => {
@@ -46,7 +46,8 @@ export const initDB = async () => {
           codeType: codeType,
           data: {
             ID: uuidv4(),
-            name: codeType
+            name: codeType,
+            ...ct
           }
         })
       );

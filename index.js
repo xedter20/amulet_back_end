@@ -8,6 +8,7 @@ import authRoute from './routes/auth.js';
 import transactionRoute from './routes/transactionRoute.js';
 import bodyParser from 'body-parser';
 import codeRoute from './routes/codeRoute.js';
+import featureListRoute from './routes/featureListRoute.js';
 
 import * as initDBScripts from './scripts/initDB.js';
 
@@ -35,6 +36,7 @@ app.use('/api/user', userRoute);
 app.use('/api/auth', authRoute);
 app.use('/api/transaction', transactionRoute);
 app.use('/api/code', codeRoute);
+app.use('/api/featureList', featureListRoute);
 
 app.use('/', async (req, res, next) => {
   res.json('Hello from server');
