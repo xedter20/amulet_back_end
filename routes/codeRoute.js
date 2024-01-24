@@ -1,6 +1,12 @@
 import express from 'express';
 
-import { generateCodeBundle } from '../controllers/codeController.js';
+import {
+  generateCodeBundle,
+  getCodeList,
+  getPendingCodeList,
+  sendConfirmationForApproval,
+  approveConfirmationLink
+} from '../controllers/codeController.js';
 
 import { authenticateUserMiddleware } from '../middleware/authMiddleware.js';
 
@@ -11,4 +17,29 @@ router.post(
   // authenticateUserMiddleware,
   generateCodeBundle
 );
+
+router.post(
+  '/getCodeList',
+  // authenticateUserMiddleware,
+  getCodeList
+);
+
+router.post(
+  '/getPendingCodeList',
+  // authenticateUserMiddleware,
+  getPendingCodeList
+);
+
+router.post(
+  '/sendConfirmationForApproval',
+  // authenticateUserMiddleware,
+  sendConfirmationForApproval
+);
+
+router.get(
+  '/approveConfirmationLink',
+  // authenticateUserMiddleware,
+  approveConfirmationLink
+);
+
 export default router;

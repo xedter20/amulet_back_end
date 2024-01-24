@@ -37,10 +37,17 @@ export const listCodeType = () => {
   return queryText;
 };
 
-export const createCodeBundle = ({ bundleId, name }) => {
+export const createCodeBundle = ({
+  bundleId,
+  name,
+  isApproved,
+  displayName
+}) => {
   let bundleData = {
     bundleId,
-    dateTimeAdded: Date.now()
+    dateTimeAdded: Date.now(),
+    isApproved,
+    displayName
   };
 
   const queryText = `
@@ -78,7 +85,7 @@ export const createNewCode = ({ name, bundleId, codeData }) => {
 
   
   MERGE (c:Code {
-    name: '${codeData.code}'
+    name: '${codeData.name}'
   })
 
   with c
@@ -98,6 +105,89 @@ export const createNewCode = ({ name, bundleId, codeData }) => {
 
 
   return *
+
+  `;
+
+  return queryText;
+};
+
+export const listCodes = ({ isApproved = true }) => {
+  const queryText = `
+  
+  MATCH (ct: CodeType )-[:has_bundle]->(cb:CodeBundle
+   {
+    isApproved: ${isApproved}
+   } 
+    
+    )
+  MATCH (cb)-[:has_code]->(c: Code )
+      with c 
+       order by c.dateTimeUpdated ASC
+        return collect(properties(c)) as c
+
+  `;
+
+  return queryText;
+};
+
+export const countTotalBundleByType = ({ name }) => {
+  const queryText = `
+  
+  MATCH (ct: CodeType {
+   name: '${name}'
+  })
+  
+  MATCH (ct)-[:has_bundle]->(cb:CodeBundle)
+
+  RETURN COUNT(cb)
+
+  `;
+
+  return queryText;
+};
+
+export const listPendingCode = () => {
+  const queryText = `
+
+
+  MATCH (ct: CodeType )-[:has_bundle]->(cb:CodeBundle
+   {
+    isApproved: false
+   } 
+    )
+    MATCH (cb)-[:has_code]->(c: Code )
+    with c ,cb
+    order by c.dateTimeUpdated ASC
+    WITH cb, collect(properties(c)) as codes
+ return COLLECT({ bundleId: cb.bundleId,dateTimeAdded: cb.dateTimeAdded , displayName: cb.displayName, codeList : codes})
+
+
+  `;
+
+  return queryText;
+};
+
+export const updatePendingCodes = ({ bundleId, isApproved = true }) => {
+  let data = {
+    isApproved,
+    dateTimeApproved: Date.now()
+  };
+
+  const queryText = `
+
+
+  MATCH (ct: CodeType )-[:has_bundle]->(cb:CodeBundle
+    {
+  bundleId: '${bundleId}'
+    }
+    )
+    MATCH (cb)-[:has_code]->(c: Code )
+
+  SET cb += ${util.inspect(data)}
+  SET c += ${util.inspect(data)}
+
+  RETURN * 
+ 
 
   `;
 

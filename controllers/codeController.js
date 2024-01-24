@@ -3,7 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   createNewCode,
   createCodeType,
-  createCodeBundle
+  createCodeBundle,
+  countTotalBundleByType
 } from '../cypher/code.js';
 
 import { getPackage } from '../cypher/package.js';
@@ -14,6 +15,9 @@ const { cypherQuerySession } = config;
 import ShortUniqueId from 'short-unique-id';
 
 import { packageRepo } from '../repository/package.js';
+
+import { codeTypeRepo } from '../repository/codeType.js';
+import { sendEmail } from '../helpers/emailSending.js';
 
 const generateCode = ({
   bundleId,
@@ -28,7 +32,7 @@ const generateCode = ({
   const { randomUUID } = new ShortUniqueId({ length: 6 });
 
   return {
-    code: randomUUID(),
+    name: randomUUID(),
     bundleId: bundleId,
     dateTimeAdded: Date.now(),
     dateTimeUpdated: Date.now(),
@@ -37,7 +41,8 @@ const generateCode = ({
     userID: '', // from UI
     directSponsorId: '', // from UI
     packageType, // from UI
-    isActiveForDailyBonus: codeType === 'REGULAR'
+    isActiveForDailyBonus: codeType === 'REGULAR',
+    isApproved: codeType === 'REGULAR'
   };
 };
 
@@ -77,10 +82,24 @@ export const generateCodeBundle = async (req, res, next) => {
       })
     );
 
+    let countTotal = 0;
+    if (codeType === 'FREE_SLOT') {
+      let { records } = await cypherQuerySession.executeQuery(
+        countTotalBundleByType({
+          name: codeType
+        })
+      );
+      const [count] = records[0]._fields;
+
+      countTotal = count.low;
+    }
+
     await cypherQuerySession.executeQuery(
       createCodeBundle({
         bundleId: bundleId,
-        name: codeType
+        name: codeType,
+        isApproved: codeType === 'REGULAR',
+        displayName: `${codeType}_BUNDLE_${countTotal + 1}`
       })
     );
     await Promise.all(
@@ -98,6 +117,66 @@ export const generateCodeBundle = async (req, res, next) => {
     );
 
     res.json({ success: true, codeList });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+};
+
+export const getCodeList = async (req, res, next) => {
+  try {
+    let { codeType, packageType, quantity } = req.body;
+    // get packageType data in DB
+
+    let data = await codeTypeRepo.listCode();
+
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+};
+
+export const getPendingCodeList = async (req, res, next) => {
+  try {
+    let { codeType, packageType, quantity } = req.body;
+    // get packageType data in DB
+
+    let data = await codeTypeRepo.listPendingCode();
+
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+};
+
+export const sendConfirmationForApproval = async (req, res, next) => {
+  try {
+    let bundleId = req.body.bundleId;
+
+    let approvalLink = `${config.hostUrl}/api/code/approveConfirmationLink?bundleId=${bundleId}`;
+
+    await sendEmail({
+      data: {
+        bundleId,
+        codeList: [],
+        link: approvalLink
+      }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+};
+
+export const approveConfirmationLink = async (req, res, next) => {
+  try {
+    let bundleId = req.query.bundleId;
+
+    let data = await codeTypeRepo.updatePendingCodes({
+      bundleId,
+      isApproved: true
+    });
+
+    res.json({ success: true, bundleId });
   } catch (error) {
     res.status(400).send(error.message);
   }
