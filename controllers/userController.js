@@ -15,7 +15,7 @@ import {
 
 const db = getFirestore(firebase);
 import { v4 as uuidv4 } from 'uuid';
-
+import ShortUniqueId from 'short-unique-id';
 import {
   findUserByIdQuery,
   addUserQuery,
@@ -50,14 +50,8 @@ import {
 } from '../cypher/floater.js';
 
 import config from '../config.js';
-
+import { packageRepo } from '../repository/package.js';
 const { cypherQuerySession } = config;
-
-const amuletPackage = [
-  { key: 'sgep_10', displayName: 'SGEP Package 1 (Php 10,000)', points: 1000 },
-  { key: 'sgep_50', displayName: 'SGEP Package 2 (Php 50,000)', points: 5000 },
-  { key: 'sgep_100', displayName: 'SGEP Package 3 (Php 50,000)', points: 10000 }
-];
 
 const countTotalChildrenNodes = depthLevel => {
   return 1 * Math.pow(2, depthLevel);
@@ -190,6 +184,15 @@ const prepareDataBeforeInsertion = ({
   };
 };
 
+const userDisplayIdGenerator = () => {
+  const { randomUUID } = new ShortUniqueId({ length: 5 });
+  let currentYear = new Date().getFullYear();
+
+  let displayId = `AM_OPC-${currentYear}-${randomUUID()}`;
+  // check if exists in db
+
+  return displayId;
+};
 export const createUser = async (req, res, next) => {
   try {
     const data = req.body;
@@ -200,8 +203,11 @@ export const createUser = async (req, res, next) => {
       ...data,
       ID: uuidv4(),
       name: `${firstName} ${lastName}`,
-      date_created: Date.now()
+      date_created: Date.now(),
+      displayID: userDisplayIdGenerator()
     };
+
+    console.log(formData);
 
     let { records } = await cypherQuerySession.executeQuery(
       findUserByIdQuery(parentNodeID)
@@ -271,7 +277,34 @@ export const getAllUsers = async (req, res, next) => {
   try {
     let userList = [];
 
-    let { records } = await cypherQuerySession.executeQuery(findUserQuery());
+    let { records } = await cypherQuerySession.executeQuery(
+      findUserQuery({
+        sponsorIdNumber: false
+      })
+    );
+
+    const users = records[0]._fields[0];
+
+    userList = users;
+
+    res.status(200).send(userList);
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+};
+
+export const getMySponseelist = async (req, res, next) => {
+  try {
+    let loggedInUser = req.user;
+
+    let userList = [];
+    const sponsorIdNumber = loggedInUser.ID || req.params.sponsorIdNumber;
+
+    let { records } = await cypherQuerySession.executeQuery(
+      findUserQuery({
+        sponsorIdNumber
+      })
+    );
 
     const users = records[0]._fields[0];
 
@@ -479,9 +512,12 @@ export const createChildren = async (req, res, next) => {
     if (position && parentNodeID && targetUserID) {
       let { amulet_package, ID, INDEX_PLACEMENT, parentID } = childUser;
 
-      let foundAmuletPackage = amuletPackage.find(aPackage => {
-        return aPackage.key === amulet_package;
+      let packageList = await packageRepo.listPackage();
+      let foundAmuletPackage = packageList.find(p => {
+        return p.name === amulet_package;
       });
+
+      console.log({ foundAmuletPackage });
 
       if (foundAmuletPackage) {
         // create relationship parent -> child
@@ -547,27 +583,6 @@ export const createChildren = async (req, res, next) => {
 
         console.log('inserted succesfully');
       }
-
-      res.status(200).json({
-        success: true,
-        message: 'created_successfully'
-      });
-
-      return true;
-      await cypherQuerySession.executeQuery(
-        createRelationShipQuery({
-          parentId: parentNodeID,
-          ID: result.ID
-        })
-      );
-
-      const checkParentNodeIfPairExistQuery =
-        await cypherQuerySession.executeQuery(
-          getAllParentNodes({ ID: result.ID })
-        );
-
-      const [child, parents] =
-        checkParentNodeIfPairExistQuery.records[0]._fields;
     }
 
     res.status(200).json({

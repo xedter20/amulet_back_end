@@ -6,6 +6,8 @@ export const featureList = async (req, res, next) => {
     let packageList = await packageRepo.listPackage();
     let codeTypeList = await codeTypeRepo.listCodeType();
 
+    console.log(codeTypeList);
+
     let list = {
       packageList: packageList,
       codeTypeList: codeTypeList

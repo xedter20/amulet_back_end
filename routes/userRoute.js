@@ -11,7 +11,8 @@ import {
   getUserNodeWithChildren,
   getNetworkNodeList,
   createFloater,
-  fetchFloaterData
+  fetchFloaterData,
+  getMySponseelist
 } from '../controllers/userController.js';
 
 import { authenticateUserMiddleware } from '../middleware/authMiddleware.js';
@@ -19,6 +20,8 @@ import { authenticateUserMiddleware } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.get('/list', authenticateUserMiddleware, getAllUsers);
+
+router.post('/getMySponseelist', authenticateUserMiddleware, getMySponseelist);
 router.post('/create', authenticateUserMiddleware, createUser);
 router.get('/:userId', authenticateUserMiddleware, getUser);
 

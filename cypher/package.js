@@ -31,7 +31,8 @@ export const getPackage = () => {
   
  
   MATCH (p: Package)
-  
+  with p
+  order by p.points ASC
   return  collect(properties(p)) as data
 
   `;

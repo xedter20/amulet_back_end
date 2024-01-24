@@ -79,11 +79,21 @@ export const createRelationShipQuery = ({ parentId, ID }) => {
   return queryText;
 };
 
-export const findUserQuery = () => {
-  const queryText = `
+export const findUserQuery = ({ sponsorIdNumber = false }) => {
+  let queryText;
+  if (sponsorIdNumber) {
+    queryText = `
+  MATCH (n:User ) 
+
+  where n.sponsorIdNumber = '${sponsorIdNumber}'
+  RETURN COLLECT(properties(n)) as data
+  `;
+  } else {
+    queryText = `
   MATCH (n:User ) 
   RETURN COLLECT(properties(n)) as data
   `;
+  }
 
   return queryText;
 };
@@ -141,7 +151,7 @@ export const getTreeStructureQuery = ({ userId, withOptional }) => {
    
     WITH collect(path) AS paths
     CALL apoc.convert.toTree(paths, true , {
-      nodes: {User: ['name','firstName', 'lastName', 'ID','email' ,'INDEX_PLACEMENT']}
+      nodes: {User: ['name','firstName', 'lastName', 'ID','email' ,'INDEX_PLACEMENT','displayID']}
     })
     YIELD value
     RETURN value;
