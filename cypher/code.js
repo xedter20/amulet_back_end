@@ -193,3 +193,50 @@ export const updatePendingCodes = ({ bundleId, isApproved = true }) => {
 
   return queryText;
 };
+
+export const getCode = name => {
+  const queryText = `
+
+
+  MATCH (ct: CodeType )-[:has_bundle]->(cb:CodeBundle
+   {
+    isApproved: true
+   } 
+    )
+    MATCH (cb)-[:has_code]->(c: Code {
+       name: '${name}'
+
+    })
+   
+
+    return properties(c) as data
+
+
+  `;
+
+  return queryText;
+};
+
+export const updateCodeByName = (name, updateData) => {
+  let data = {
+    ...updateData
+  };
+
+  const queryText = `
+
+
+
+  MATCH (c: Code {
+
+    name: '${name}'
+  })
+
+  SET c += ${util.inspect(data)}
+
+  RETURN * 
+ 
+
+  `;
+
+  return queryText;
+};

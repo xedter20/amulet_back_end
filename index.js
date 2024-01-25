@@ -12,6 +12,8 @@ import featureListRoute from './routes/featureListRoute.js';
 
 import * as initDBScripts from './scripts/initDB.js';
 
+import { dailyProfitScheduleJob } from './helpers/dailyProfitScheduleJob.js';
+
 const app = express();
 
 // for parsing application/json
@@ -45,4 +47,5 @@ app.use('/', async (req, res, next) => {
 app.listen(config.port, async () => {
   console.log(`Server is live @ ${config.hostUrl}`);
   await initDBScripts.initDB();
+  await dailyProfitScheduleJob();
 });

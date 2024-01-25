@@ -2,7 +2,9 @@ import {
   listCodeType,
   listCodes,
   listPendingCode,
-  updatePendingCodes
+  updatePendingCodes,
+  getCode,
+  updateCodeByName
 } from '../cypher/code.js';
 
 import config from '../config.js';
@@ -75,5 +77,33 @@ export const codeTypeRepo = {
     let { records } = await cypherQuerySession.executeQuery(
       updatePendingCodes({ bundleId, isApproved })
     );
+  },
+  validateCode: async ({ code, userId, userPackageType }) => {
+    // check if exist
+    // check if status  = 'AVAILABLE'
+    // check if userID property exists on code
+
+    let { records } = await cypherQuerySession.executeQuery(getCode(code));
+
+    let isValid = false;
+
+    if (records.length > 0) {
+      let list = records[0]._fields;
+
+      let [data] = transformIntegers(list);
+
+      let { status, isApproved, packageType } = data;
+
+      let checkIfAvailability = status === 'AVAILABLE' && !!isApproved;
+
+      let checkUserPackage = userPackageType === packageType;
+
+      isValid = checkIfAvailability && checkUserPackage;
+    }
+
+    return isValid;
+  },
+  updateCodeByName: async ({ code, updateData }) => {
+    await cypherQuerySession.executeQuery(updateCodeByName(code, updateData));
   }
 };

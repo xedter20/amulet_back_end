@@ -18,7 +18,8 @@ const {
   JWT_TOKEN_SECRET,
   NEO4J_URI,
   NEO4J_USER,
-  NEO4J_PASSWORD
+  NEO4J_PASSWORD,
+  SENDGRID_API_KEY
 } = process.env;
 
 let driver;
@@ -55,5 +56,6 @@ export default {
     measurementId: 'G-62HCJN3SH9'
   },
   cypherQuerySession,
-  JWT_TOKEN_SECRET
+  JWT_TOKEN_SECRET,
+  SENDGRID_API_KEY
 };

@@ -51,6 +51,7 @@ import {
 
 import config from '../config.js';
 import { packageRepo } from '../repository/package.js';
+import { codeTypeRepo } from '../repository/codeType.js';
 const { cypherQuerySession } = config;
 
 const countTotalChildrenNodes = depthLevel => {
@@ -207,8 +208,6 @@ export const createUser = async (req, res, next) => {
       displayID: userDisplayIdGenerator()
     };
 
-    console.log(formData);
-
     let { records } = await cypherQuerySession.executeQuery(
       findUserByIdQuery(parentNodeID)
     );
@@ -219,14 +218,14 @@ export const createUser = async (req, res, next) => {
     let nodeLogicProps = {};
 
     if (email === 'dextermiranda441@gmail.com') {
-      formData = {
-        ...formData,
-        role: 'ADMIN',
-        isRootNode: true,
-        ID_ALIAS: 'LVL_1_INDEX_1',
-        INDEX_PLACEMENT: 1,
-        DEPTH_LEVEL: 1
-      };
+      // formData = {
+      //   ...formData,
+      //   role: 'ADMIN',
+      //   isRootNode: true,
+      //   ID_ALIAS: 'LVL_1_INDEX_1',
+      //   INDEX_PLACEMENT: 1,
+      //   DEPTH_LEVEL: 1
+      // };
     } else {
       nodeLogicProps = prepareDataBeforeInsertion({
         depthLevel: depthLevel,
@@ -373,6 +372,7 @@ export const isUserNameExist = async (req, res, next) => {
 
 const recursiveUpdateAttributes = async (node, allPairingsFromDb) => {
   // If the node is empty, just return it as is.
+
   if (!node) {
     return node;
   }
@@ -466,7 +466,7 @@ export const createChildren = async (req, res, next) => {
   try {
     const data = req.body;
 
-    const { position, parentNodeID, targetUserID } = data;
+    const { position, parentNodeID, targetUserID, code } = data;
 
     let { records } = await cypherQuerySession.executeQuery(
       findUserByIdQuery(parentNodeID)
@@ -493,6 +493,16 @@ export const createChildren = async (req, res, next) => {
     );
 
     let [childUser] = childUserInfo.records[0]._fields[0];
+
+    let isCodeValid = await codeTypeRepo.validateCode({
+      code,
+      userId: targetUserID,
+      userPackageType: childUser.amulet_package
+    });
+
+    if (!isCodeValid) {
+      throw Error('invalid_code');
+    }
 
     let formData = {
       email: childUser.email,
@@ -585,6 +595,15 @@ export const createChildren = async (req, res, next) => {
       }
     }
 
+    // update codeV set status = 'USED'
+    await codeTypeRepo.updateCodeByName({
+      code,
+      updateData: {
+        status: 'USED',
+        userID: targetUserID,
+        directSponsorId: ''
+      }
+    });
     res.status(200).json({
       success: true,
       message: 'created_successfully'
@@ -592,7 +611,7 @@ export const createChildren = async (req, res, next) => {
     return true;
   } catch (error) {
     console.log(error);
-    res.status(400).send(error.message);
+    res.status(400).send({ message: error.message });
   }
 };
 
