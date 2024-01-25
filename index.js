@@ -47,5 +47,5 @@ app.use('/', async (req, res, next) => {
 app.listen(config.port, async () => {
   console.log(`Server is live @ ${config.hostUrl}`);
   await initDBScripts.initDB();
-  await dailyProfitScheduleJob();
+  // await dailyProfitScheduleJob();
 });

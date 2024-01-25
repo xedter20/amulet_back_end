@@ -240,3 +240,30 @@ export const updateCodeByName = (name, updateData) => {
 
   return queryText;
 };
+
+export const getCodeListForDailyProfit = () => {
+  const queryText = `
+
+
+  MATCH (ct: CodeType )-[:has_bundle]->(cb:CodeBundle
+   {
+    isApproved: true
+   } 
+   )
+    MATCH (cb)-[:has_code]->(c: Code {
+      status : 'USED'
+   })
+   
+   with ct, c, collect(properties(c)) as codes
+
+    return collect({
+      codeTypeName: ct.name,
+      packageType:c.packageType,
+      userID: c.userID
+    }) as data
+
+
+  `;
+
+  return queryText;
+};

@@ -4,7 +4,8 @@ import {
   listPendingCode,
   updatePendingCodes,
   getCode,
-  updateCodeByName
+  updateCodeByName,
+  getCodeListForDailyProfit
 } from '../cypher/code.js';
 
 import config from '../config.js';
@@ -105,5 +106,15 @@ export const codeTypeRepo = {
   },
   updateCodeByName: async ({ code, updateData }) => {
     await cypherQuerySession.executeQuery(updateCodeByName(code, updateData));
+  },
+  getCodeListForDailyProfit: async () => {
+    let { records } = await cypherQuerySession.executeQuery(
+      getCodeListForDailyProfit()
+    );
+    const [list] = records[0]._fields;
+
+    let data = transformIntegers(list);
+
+    return data;
   }
 };

@@ -11,9 +11,24 @@ import config from '../config.js';
 const { cypherQuerySession } = config;
 import { addUserQuery } from '../cypher/user.js';
 const amuletPackage = [
-  { name: 'package_10', displayName: 'Silver (Php 10,000)', points: 1000 },
-  { name: 'package_50', displayName: 'Gold (Php 50,000)', points: 5000 },
-  { name: 'package_100', displayName: 'Diamond (Php 100,000)', points: 10000 }
+  {
+    name: 'package_10',
+    displayName: 'Silver (Php 10,000)',
+    points: 1000,
+    dailyBonusAmount: 60
+  },
+  {
+    name: 'package_50',
+    displayName: 'Gold (Php 50,000)',
+    points: 5000,
+    dailyBonusAmount: 300
+  },
+  {
+    name: 'package_100',
+    displayName: 'Diamond (Php 100,000)',
+    points: 10000,
+    dailyBonusAmount: 600
+  }
 ];
 
 const codeType = [
