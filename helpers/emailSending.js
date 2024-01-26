@@ -1,12 +1,15 @@
 import sgMail from '@sendgrid/mail';
 
+import config from '../config.js';
+
+console.log(config.SENDGRID_API_KEY);
 export const sendEmail = async ({ data }) => {
   let link = data.link;
 
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  sgMail.setApiKey(config.SENDGRID_API_KEY);
   let mailOptions = {
     from: 'admin@axztechItsolutions.com',
-    to: 'admin@amuletinternational-official.com',
+    to: 'dextermiranda441@gmail.com',
     subject: 'Bundle of Code(s) Approval',
 
     text: `
