@@ -34,7 +34,7 @@ export const incomeSalesRepo = {
           return current.dateIdentifier === dateIdentifier;
         });
 
-        if (!mapped && !mapped.dateIdentifier) {
+        if (mapped && !mapped.dateIdentifier) {
           dateList.push({
             dateTimeAdded: Date.now(),
             dateIdentifier,

@@ -267,3 +267,26 @@ export const getCodeListForDailyProfit = () => {
 
   return queryText;
 };
+
+export const getCodeByUserId = userId => {
+  const queryText = `
+
+
+  MATCH (ct: CodeType )-[:has_bundle]->(cb:CodeBundle
+   {
+    isApproved: true
+   } 
+    )
+    MATCH (cb)-[:has_code]->(c: Code {
+       userID: '${userId}'
+
+    })
+   
+
+    return properties(c) as data
+
+
+  `;
+
+  return queryText;
+};

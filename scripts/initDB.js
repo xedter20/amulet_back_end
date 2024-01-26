@@ -3,13 +3,17 @@ import ShortUniqueId from 'short-unique-id';
 import {
   createNewCode,
   createCodeType,
-  createCodeBundle
+  createCodeBundle,
+  getCodeByUserId
 } from '../cypher/code.js';
 import { createPackage } from '../cypher/package.js';
 
 import config from '../config.js';
 const { cypherQuerySession } = config;
 import { addUserQuery } from '../cypher/user.js';
+
+import { codeTypeRepo } from '../repository/codeType.js';
+
 const amuletPackage = [
   {
     name: 'package_10',
@@ -98,11 +102,51 @@ const createRootNodeForAll = async () => {
     ...otherProps
   };
 
-  let createdUser = await cypherQuerySession.executeQuery(
+  var { records } = await cypherQuerySession.executeQuery(
     addUserQuery({
       ...formattedData
     })
   );
+  const [user] = records[0]._fields;
+
+  // assign root to code default 10k points package
+
+  // generate code for very ROOT User
+  let bundleId = uuidv4();
+  await cypherQuerySession.executeQuery(
+    createCodeBundle({
+      bundleId: bundleId,
+      name: 'REGULAR',
+      isApproved: true,
+      displayName: `REGULAR_BUNDLE`
+    })
+  );
+  let newCode = codeTypeRepo.generateCode({
+    bundleId,
+    codeType: 'REGULAR',
+    packageType: 'package_100',
+    userID: user.ID
+  });
+
+  let updatedData = {
+    ...newCode,
+    status: 'USED'
+  };
+
+  var { records } = await cypherQuerySession.executeQuery(
+    getCodeByUserId(user.ID)
+  );
+  let count = records && records.length;
+
+  if (count === 0) {
+    await cypherQuerySession.executeQuery(
+      createNewCode({
+        name: 'REGULAR',
+        bundleId,
+        codeData: updatedData
+      })
+    );
+  }
 };
 export const initDB = async () => {
   await createRootNodeForAll();

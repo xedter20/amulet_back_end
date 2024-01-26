@@ -12,6 +12,8 @@ import config from '../config.js';
 const { cypherQuerySession } = config;
 
 import neo4j from 'neo4j-driver';
+import { v4 as uuidv4 } from 'uuid';
+import ShortUniqueId from 'short-unique-id';
 const transformIntegers = function (result) {
   let updatedData = result.map(entryObjects => {
     let keyys = Object.keys(entryObjects);
@@ -116,5 +118,32 @@ export const codeTypeRepo = {
     let data = transformIntegers(list);
 
     return data;
+  },
+  generateCode: ({
+    bundleId,
+    codeType = 'FREE_SLOT' || 'REGULAR',
+    packageType,
+    userID = ''
+  }) => {
+    // codeTypeV -[:has_bundle]-> bundleV  [has_code -> codeV
+    if (codeType === 'FREE_SLOT') {
+      // send email to admin to confirm
+    }
+
+    const { randomUUID } = new ShortUniqueId({ length: 6 });
+
+    return {
+      name: randomUUID(),
+      bundleId: bundleId,
+      dateTimeAdded: Date.now(),
+      dateTimeUpdated: Date.now(),
+      status: 'AVAILABLE', // 'AVAILABLE' || 'USED',
+      type: codeType, //'FREE_SLOT' || 'REGULAR', // from UI
+      userID: userID || '', // from UI
+      directSponsorId: '', // from UI
+      packageType, // from UI
+      isActiveForDailyBonus: codeType === 'REGULAR',
+      isApproved: codeType === 'REGULAR'
+    };
   }
 };
