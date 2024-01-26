@@ -152,7 +152,7 @@ export const sendConfirmationForApproval = async (req, res, next) => {
   try {
     let bundleId = req.body.bundleId;
 
-    let approvalLink = `${config.hostUrl}/api/code/approveConfirmationLink?bundleId=${bundleId}`;
+    let approvalLink = `https://amulet-back-end-api.onrender.com/api/code/approveConfirmationLink?bundleId=${bundleId}`;
 
     await sendEmail({
       data: {

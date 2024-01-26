@@ -33,6 +33,8 @@ export const sendEmail = async ({ data }) => {
 
     console.log('email sent');
   } catch (error) {
-    return console.log(error);
+    console.log('sendgrid');
+
+    console.log(error);
   }
 };
