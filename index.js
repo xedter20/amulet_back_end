@@ -46,6 +46,9 @@ app.use('/', async (req, res, next) => {
 
 app.listen(config.port, async () => {
   console.log(`Server is live @ ${config.hostUrl}`);
+  let approvalLink = `${config.hostUrl}/api/code/approveConfirmationLink`;
+
+  console.log({ approvalLink });
   await initDBScripts.initDB();
   await dailyProfitScheduleJob();
 });
