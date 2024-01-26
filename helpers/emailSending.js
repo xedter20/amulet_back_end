@@ -9,7 +9,7 @@ export const sendEmail = async ({ data }) => {
 
   let mailOptions = {
     from: 'admin@axztechItsolutions.com',
-    to: 'dextermiranda441@gmail.com', // admin@amuletinternational-official.com
+    to: 'admin@amuletinternational-official.com',
     subject: 'Bundle of Code(s) Approval',
 
     text: `

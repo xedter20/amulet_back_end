@@ -176,7 +176,7 @@ export const approveConfirmationLink = async (req, res, next) => {
       isApproved: true
     });
 
-    res.json({ success: true, bundleId });
+    res.json({ success: true, message: 'Successfully Approval of code(s)' });
   } catch (error) {
     res.status(400).send(error.message);
   }
