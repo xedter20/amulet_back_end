@@ -1,8 +1,13 @@
-import { addIncome, getIncome } from '../cypher/incomeSales.js';
+import {
+  addIncome,
+  getIncome,
+  getIncomeByType,
+  recievedDailyBonus
+} from '../cypher/incomeSales.js';
 
 import config from '../config.js';
 const { cypherQuerySession } = config;
-
+import { transformIntegers } from '../helpers/transfromIntegers.js';
 export const incomeSalesRepo = {
   addIncome: async data => {
     if (data.type === 'DAILY_BONUS') {
@@ -56,7 +61,19 @@ export const incomeSalesRepo = {
         })
       );
     } else {
-      await cypherQuerySession.executeQuery(addIncome(data));
+      // await cypherQuerySession.executeQuery(addIncome(data));
     }
+    return true;
+  },
+  getIncomeByType: async ({ type = '' }) => {
+    let { records } = await cypherQuerySession.executeQuery(
+      getIncomeByType(type)
+    );
+    const [sales] = records[0]._fields;
+
+    return transformIntegers(sales);
+  },
+  recievedDailyBonus: async ({ ID, newData }) => {
+    await cypherQuerySession.executeQuery(recievedDailyBonus(ID, newData));
   }
 };

@@ -20,7 +20,8 @@ let incomeV = {
 };
 
 export const dailyProfitScheduleJob = async () => {
-  cron.schedule('* * * * *', async () => {
+  console.log('started');
+  cron.schedule('0 0 * * *', async () => {
     // 1. get all code coupon with status = 'USED' and have userID property
 
     try {

@@ -2,7 +2,8 @@ import express from 'express';
 
 import {
   approvedMatching,
-  getDashboardStats
+  getDashboardStats,
+  recievedDailyBonus
 } from '../controllers/transactionController.js';
 
 import { authenticateUserMiddleware } from '../middleware/authMiddleware.js';
@@ -16,4 +17,11 @@ router.post(
   authenticateUserMiddleware,
   getDashboardStats
 );
+
+router.post(
+  '/recievedDailyBonus',
+  authenticateUserMiddleware,
+  recievedDailyBonus
+);
+
 export default router;

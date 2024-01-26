@@ -17,7 +17,7 @@ export const addIncome = data => {
      })
 
      ON CREATE SET n += ${util.inspect(newData)}
-     ON MATCH SET n.dateUpdated = ${Date.now()}
+     ON MATCH SET n += ${util.inspect(newData)}
 
 
      RETURN *
@@ -37,6 +37,35 @@ export const getIncome = relatedEntityID => {
   where  p.relatedEntityID = '${relatedEntityID}'
 
   return  properties(p) as data
+
+  `;
+
+  return queryText;
+};
+
+export const getIncomeByType = type => {
+  const queryText = `
+  
+ 
+  MATCH (p: IncomeSales)
+  where  p.type  = '${type}'
+
+  return  collect(properties(p)) as data
+
+  `;
+
+  return queryText;
+};
+
+export const recievedDailyBonus = (ID, newData) => {
+  let data = JSON.stringify(newData);
+  const queryText = `
+  
+ 
+  MATCH (p: IncomeSales)
+  where  p.ID  = '${ID}'
+    SET p.dateList = ${util.inspect(data)}
+
 
   `;
 
