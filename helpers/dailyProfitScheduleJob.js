@@ -20,42 +20,50 @@ let incomeV = {
 };
 
 export const dailyProfitScheduleJob = async () => {
-  let packageList = await packageRepo.listPackage();
-  let listCodeTypeList = await codeTypeRepo.listCodeType();
+  console.log('started');
+  cron.schedule('* * * * *', async () => {
+    // 1. get all code coupon with status = 'USED' and have userID property
 
-  let codes = await codeTypeRepo.getCodeListForDailyProfit();
+    try {
+      let packageList = await packageRepo.listPackage();
+      let listCodeTypeList = await codeTypeRepo.listCodeType();
 
-  await Promise.all(
-    codes.map(async ({ packageType, userID, codeTypeName }) => {
-      let foundAmuletPackage = packageList.find(p => {
-        return p.name === packageType;
-      });
+      let codes = await codeTypeRepo.getCodeListForDailyProfit();
 
-      let codeType = listCodeTypeList.find(ct => {
-        return ct.name === codeTypeName;
-      });
+      console.log({ codes });
+      await Promise.all(
+        codes.map(async ({ packageType, userID, codeTypeName }) => {
+          let foundAmuletPackage = packageList.find(p => {
+            return p.name === packageType;
+          });
 
-      let dailyBonusAmount =
-        foundAmuletPackage && foundAmuletPackage.dailyBonusAmount;
-      let isActiveForDailyBonus = codeType && codeType.isActiveForDailyBonus;
+          let codeType = listCodeTypeList.find(ct => {
+            return ct.name === codeTypeName;
+          });
 
-      if (isActiveForDailyBonus) {
-        // create DailBonusV
-        incomeSalesRepo.addIncome({
-          ID: uuidv4(),
-          type: 'DAILY_BONUS',
-          userID: userID,
-          dateTimeAdded: Date.now(),
-          relatedEntityID: '',
-          amountInPhp: dailyBonusAmount
-        });
-      } else {
-      }
-    })
-  );
+          let dailyBonusAmount =
+            foundAmuletPackage && foundAmuletPackage.dailyBonusAmount;
+          let isActiveForDailyBonus =
+            codeType && codeType.isActiveForDailyBonus;
 
-  // cron.schedule('* * * * *', async () => {
-  //   // 1. get all code coupon with status = 'USED' and have userID property
+          if (isActiveForDailyBonus) {
+            // create DailBonusV
+            incomeSalesRepo.addIncome({
+              ID: uuidv4(),
+              type: 'DAILY_BONUS',
+              userID: userID,
+              dateTimeAdded: Date.now(),
+              relatedEntityID: '',
+              amountInPhp: dailyBonusAmount
+            });
+          } else {
+          }
+        })
+      );
 
-  // });
+      console.log('cron jobs completed');
+    } catch (error) {
+      console.log(error);
+    }
+  });
 };

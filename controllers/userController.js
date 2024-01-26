@@ -54,6 +54,9 @@ import { packageRepo } from '../repository/package.js';
 import { codeTypeRepo } from '../repository/codeType.js';
 const { cypherQuerySession } = config;
 
+import { transformIntegers } from '../helpers/transfromIntegers.js';
+import { incomeSalesRepo } from '../repository/incomeSales.js';
+
 const countTotalChildrenNodes = depthLevel => {
   return 1 * Math.pow(2, depthLevel);
 };
@@ -399,14 +402,14 @@ const recursiveUpdateAttributes = async (node, allPairingsFromDb) => {
   );
 
   return {
-    INDEX_PLACEMENT: node.INDEX_PLACEMENT.low,
+    INDEX_PLACEMENT: node.INDEX_PLACEMENT?.low,
     name: node.name,
 
-    _id: node._id.low,
+    _id: node._id?.low,
     attributes: {
       ...node,
-      INDEX_PLACEMENT: node.INDEX_PLACEMENT.low,
-      _id: node._id.low,
+      INDEX_PLACEMENT: node.INDEX_PLACEMENT?.low,
+      _id: node._id?.low,
       has_invite: [],
       'has_invite.date_created': ''
     },
@@ -433,16 +436,16 @@ export const getTreeStructure = async (req, res, next) => {
 
     const childUserInfo = await cypherQuerySession.executeQuery(
       getChildren({
-        isSourceRootNode: true
+        ID: loggedInUser.ID
       })
     );
 
-    let [childUser] = childUserInfo.records[0]._fields[0];
+    let [childUser] = childUserInfo.records[0]._fields;
 
     const data = await cypherQuerySession.executeQuery(
       getTreeStructureQuery({
         userId: loggedInUser.ID,
-        withOptional: !childUser
+        withOptional: childUser.length == 0
       })
     );
     let result = data.records[0]._fields;
@@ -590,8 +593,6 @@ export const createChildren = async (req, res, next) => {
         };
 
         await cypherQuerySession.executeQuery(addNetworkNode(data));
-
-        console.log('inserted succesfully');
       }
     }
 
@@ -662,9 +663,54 @@ export const getNetworkNodeList = async (req, res, next) => {
         parentID: loggedInUser.ID
       })
     );
-    const list = records[0]._fields[0];
 
-    res.json({ success: true, data: list });
+    const list = transformIntegers(records[0]._fields[0]);
+
+    let mapped = list.map((networkV, index) => {
+      let parentID = networkV.parentID;
+
+      let list_ParentsOfParentsCURRENT = JSON.parse(
+        networkV.list_ParentsOfParents
+      );
+      let prevData = list[index - 1];
+
+      if (prevData) {
+        let list_ParentsOfParentsPREV = JSON.parse(
+          prevData.list_ParentsOfParents
+        );
+
+        let currentNetworkV = list_ParentsOfParentsCURRENT.find(u => {
+          return u.ID === loggedInUser.ID;
+        });
+        let previousNetWork = list_ParentsOfParentsPREV.find(u => {
+          return u.ID === loggedInUser.ID;
+        });
+
+        if (currentNetworkV.isViewed) {
+          networkV.isDisabledInUI = true;
+        } else if (previousNetWork.isViewed) {
+          networkV.isDisabledInUI = false;
+        } else {
+          networkV.isDisabledInUI = true;
+        }
+      } else {
+        // first index
+        let currentNetworkV = list_ParentsOfParentsCURRENT.find(u => {
+          return u.ID === loggedInUser.ID;
+        });
+        networkV.isDisabledInUI = currentNetworkV.isViewed;
+      }
+
+      // let selectedNetWork = networkV;
+
+      // selectedNetWork = list_ParentsOfParentsCURRENT.find(u => {
+      //   return u.ID === loggedInUser.ID;
+      // });
+      // networkV.isDisabledInUI = !!selectedNetWork.isViewed;
+      return networkV;
+    });
+
+    res.json({ success: true, data: mapped });
   } catch (error) {
     res.status(400).send(error.message);
   }
@@ -800,6 +846,8 @@ const floaterDataInsertion = async ({
     date_created: Date.now()
   };
   await cypherQuerySession.executeQuery(createFloaterNode(userID, insertData));
+
+  return insertData.ID;
 };
 export const createFloater = async (req, res, next) => {
   try {
@@ -867,6 +915,7 @@ export const createFloater = async (req, res, next) => {
 
       if (currentRightPoints > 0) {
         result = currentLeftPoints - currentRightPoints;
+
         if (result < 0) {
           let currentPoints = result * -1;
           //Insert the current points Right Floater
@@ -893,13 +942,22 @@ export const createFloater = async (req, res, next) => {
           });
           //End Insert Initial Data
           //Insert Data ==0 Left
-          await floaterDataInsertion({
+          let floaterID = await floaterDataInsertion({
             floaterPosition: 'LEFT',
             userID: loggedInUser.ID,
             insertData,
             currentPoints: 0,
             actionType: 'DIFFERENCE'
           });
+          await incomeSalesRepo.addIncome({
+            type: 'MATCH_SALES_BONUS',
+            userID: loggedInUser.ID,
+            dateTimeAdded: Date.now(),
+            relatedEntityName: 'Floater',
+            relatedEntityID: floaterID,
+            amountInPhp: currentPoints
+          });
+
           //End  Insert Data ==0 Left
           await floaterDataInsertion({
             floaterPosition: 'RIGHT',
@@ -908,6 +966,8 @@ export const createFloater = async (req, res, next) => {
             currentPoints,
             actionType: 'DIFFERENCE'
           });
+
+          // add sales
         } else {
           //Insert the current points left Floater
 
@@ -942,12 +1002,23 @@ export const createFloater = async (req, res, next) => {
             currentPoints,
             actionType: 'DIFFERENCE'
           });
-          await floaterDataInsertion({
+
+          let floaterID = await floaterDataInsertion({
             floaterPosition: 'RIGHT',
             userID: loggedInUser.ID,
             insertData,
             currentPoints: 0,
             actionType: 'DIFFERENCE'
+          });
+          // after we insert difference
+          // we add income sale
+          await incomeSalesRepo.addIncome({
+            type: 'MATCH_SALES_BONUS',
+            userID: loggedInUser.ID,
+            dateTimeAdded: Date.now(),
+            relatedEntityName: 'Floater',
+            relatedEntityID: floaterID,
+            amountInPhp: currentPoints
           });
         }
       } else {
@@ -998,9 +1069,11 @@ export const createFloater = async (req, res, next) => {
         result = currentRightPoints - currentLeftPoints;
 
         console.log({ result });
+
         if (result < 0) {
           let currentPoints = result * -1;
           // Insert Initial
+
           await floaterDataInsertion({
             floaterPosition: 'RIGHT',
             userID: loggedInUser.ID,
@@ -1024,12 +1097,23 @@ export const createFloater = async (req, res, next) => {
           });
           //End Insert Initial
           //Insert Difference == 0 RIGHT
-          await floaterDataInsertion({
+          let floaterID = await floaterDataInsertion({
             floaterPosition: 'RIGHT',
             userID: loggedInUser.ID,
             insertData,
             currentPoints: 0,
             actionType: 'DIFFERENCE'
+          });
+
+          // after we insert 0
+          // we add income sale
+          await incomeSalesRepo.addIncome({
+            type: 'MATCH_SALES_BONUS',
+            userID: loggedInUser.ID,
+            dateTimeAdded: Date.now(),
+            relatedEntityName: 'Floater',
+            relatedEntityID: floaterID,
+            amountInPhp: currentPoints
           });
 
           //End Insert Difference == 0 RIGHT
@@ -1068,7 +1152,7 @@ export const createFloater = async (req, res, next) => {
           //End Insert Initial
 
           //Insert right Floater
-          console.log('executed 2');
+
           let currentPoints = result;
           await floaterDataInsertion({
             floaterPosition: 'RIGHT',
@@ -1078,12 +1162,22 @@ export const createFloater = async (req, res, next) => {
             actionType: 'DIFFERENCE'
           });
           //Insert Difference == 0 left
-          await floaterDataInsertion({
+          let floaterID = await floaterDataInsertion({
             floaterPosition: 'LEFT',
             userID: loggedInUser.ID,
             insertData,
             currentPoints: 0,
             actionType: 'DIFFERENCE'
+          });
+          // after we insert 0
+          // we add income sale
+          await incomeSalesRepo.addIncome({
+            type: 'MATCH_SALES_BONUS',
+            userID: loggedInUser.ID,
+            dateTimeAdded: Date.now(),
+            relatedEntityName: 'Floater',
+            relatedEntityID: floaterID,
+            amountInPhp: currentPoints
           });
         }
       } else {

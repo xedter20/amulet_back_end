@@ -103,8 +103,6 @@ const createRootNodeForAll = async () => {
       ...formattedData
     })
   );
-
-  console.log('root node created');
 };
 export const initDB = async () => {
   await createRootNodeForAll();
@@ -140,5 +138,4 @@ export const initDB = async () => {
       );
     })
   );
-  console.log('DONE');
 };

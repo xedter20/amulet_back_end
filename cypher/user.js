@@ -170,11 +170,13 @@ export const getChildren = ({ ID, isSourceRootNode }) => {
       ${isSourceRootNode ? 'isRootNode : true ' : `ID:'${ID}'`} 
     
     
-    })-[e:has_invite]->(child) 
+    })-[e:has_invite]->(child:User) 
      RETURN  COLLECT(properties(child)) as children
 
     
   `;
+
+  console.log(queryText);
 
   return queryText;
 };
